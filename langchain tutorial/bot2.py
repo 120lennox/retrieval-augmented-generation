@@ -79,4 +79,10 @@ def initialize_rag_system():
     except Exception as e:
         print(f"Error initializing RAG system {e}")
         raise
-    
+
+class State(TypedDict):
+    question: str
+    chat_history: List[tuple]
+    context: List[Document]
+    answer: str
+
