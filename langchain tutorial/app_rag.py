@@ -1,5 +1,5 @@
 """
-
+Description: Program retrieves information from website. Provides the context to LLM. LLM generates text message in response to user prompt. Uses Retrieval Augmented Generation. 
 """
 
 import getpass
