@@ -128,4 +128,12 @@ def create_rag(llm, vector_store):
 
             # System prompt
             """This is an inbult prompt that is used to guide the LLM to generate a response based on the context."""
-            
+
+            system_prompt = """"You are a helpful assistant. Answer the question based on the provided context and conversation history. Context from documents: {context} Previous conversation:{conversation_history} Current question: {question} Provide a helpful answer that considers both the document context and the conversation history.""""
+
+            # filling actual data in system template variables
+            filled_prompt = system_prompt.format(
+                context = docs_content,
+                conversation_history = conversation_context,
+                question = state["question"]
+            )
