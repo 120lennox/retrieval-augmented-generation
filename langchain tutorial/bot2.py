@@ -158,3 +158,48 @@ def create_rag(llm, vector_store):
         except Exception as e:
             print(f"Error in generating chat with history: {e}")
             return {"answer": f"Error generating messaging: {e}"}
+
+
+def main():
+    "run the program"
+
+    try:
+        # load the LLM model
+        llm, vector_store = initialize_rag_system()
+        rag_bot = create_rag(llm, vector_store)
+
+        chat_history = []
+
+        # program flow 
+
+        while True:
+            user_question = input("\nprompt (exit or quit to exit): ")
+
+            if user_question.lower() in ["exit", "quit"]:
+                print("Goodbye!")
+                break
+
+            if not user_question.strip():
+                print("Enter a valid question")
+                continue
+
+            try:
+                result = rag_bot.invoke({
+                    "question": user_question,
+                    "conversation_history": chat_history
+                    })
+                
+                answer = result['answer']
+                print(f"\nAnswer: {answer}")
+
+                chat_history.append(user_question, answer)
+
+                # control memory overflow
+                if len(chat_history) > 10:
+                    chat_history = chat_history[-10:]
+            
+            except Exception as e:
+                print(f"Error in generating chat: {e}")
+    
+    except Exception as e:
+        print(f"Error in main: {e}")
