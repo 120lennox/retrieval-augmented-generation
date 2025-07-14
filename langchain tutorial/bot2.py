@@ -141,3 +141,20 @@ def create_rag(llm, vector_store):
                 conversation_history = conversation_context,
                 question = state["question"]
             )
+
+            # package the the prompt in LLM format
+            messages = [
+                {
+                    "role": "system",
+                    "content": filled_prompt
+                }
+            ]
+
+            
+            response = llm.invoke(messages)
+
+            return {"answer": response.content}
+        
+        except Exception as e:
+            print(f"Error in generating chat with history: {e}")
+            return {"answer": f"Error generating messaging: {e}"}
