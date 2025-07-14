@@ -86,3 +86,46 @@ class State(TypedDict):
     context: List[Document]
     answer: str
 
+# create rag with chat history feature
+def create_rag(llm, vector_store):
+    def retrieve_with_chat_hostory(state: State):
+        try:
+            search_query = state["question"]
+
+            # add context to the question
+            if state.get("chat_history"):
+                recent_history = state=["chat_history"][-2:]
+                history_context = "".join([
+                    f"previous: {human} Answer: {AI}"
+                    for human, AI in recent_history
+                ])
+                search_query = f"{search_query} {history_context}"
+
+            
+            retrieved_docs = vector_store.similarity_search(search_query, k=4)
+            return {"context": retrieved_docs}
+        
+        except Exception as e:
+            print(f"Error in retrieveing with chat history {e}")
+            return {"context": []}
+    
+    def generate_with_chat_history(state: State):
+        """
+        Function generates a response based on the conversation user has with the chatbot.
+        """
+
+        try:
+            # take retrieved docs and combine them to make one big text
+            docs_content = "\n\n".join(doc.page_content for doc in state["context"])
+
+            # convert the chat history into readable format by the LLM
+            if state.get("chat_history"):
+                conversation_context = "\n".join([
+                    f"Human: {human} \n Bot: {AI}"
+                    for human, AI in state["chat_history"]
+                ])
+            
+
+            # System prompt
+            """This is an inbult prompt that is used to guide the LLM to generate a response based on the context."""
+            
