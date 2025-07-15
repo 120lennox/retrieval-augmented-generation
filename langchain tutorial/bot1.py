@@ -25,6 +25,8 @@ def get_github_token():
     if not token:
         token = getpass.getpass("Enter your GitHub access token: ")
         os.environ["GITHUB_ACCESS_TOKEN"] = token
+    
+    os.environ["OPENAI_API_KEY"] = token
     return token
 
 # Get token securely

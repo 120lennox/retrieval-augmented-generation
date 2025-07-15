@@ -23,8 +23,10 @@ os.environ["USER_AGENT"] = "RAG Bot/V2"
 def get_github_token():
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        token = getpass.getpass("Enter your github acess token")
-        os.environ("GITHUB_TOKEN") = token
+        token = getpass.getpass("Enter your github acess token: ")
+        os.environ["GITHUB_TOKEN"] = token
+    
+    os.environ["OPENAI_API_KEY"] = token
 
 github_token = get_github_token()
 
@@ -46,7 +48,7 @@ def initialize_rag_system():
         )
 
         # init vectors 
-        vectore_store = InMemoryVectorStore(embeddings)
+        vector_store = InMemoryVectorStore(embeddings)
 
         loader = WebBaseLoader(
             web_path = "https://lilianweng.github.io/posts/2023-06-23-agent/",
@@ -69,12 +71,12 @@ def initialize_rag_system():
         all_splits = text_splitter.split_documents(docs)
 
         # store splitted docs as in vectore storage
-        document_id = vectore_store.add_documents(documents=all_splits)
+        document_id = vector_store.add_documents(documents=all_splits)
 
         # error checking console output
         print(f"loaded a document with {len(docs[0].page_content)} characters. \n Added {len(document_id)} document chunks in a vector store.")
 
-        return llm, vectore_store
+        return llm, vector_store
     
     except Exception as e:
         print(f"Error initializing RAG system {e}")
@@ -94,7 +96,7 @@ def create_rag(llm, vector_store):
 
             # add context to the question
             if state.get("chat_history"):
-                recent_history = state=["chat_history"][-2:]
+                recent_history = state["chat_history"][-2:]
                 history_context = "".join([
                     f"previous: {human} Answer: {AI}"
                     for human, AI in recent_history
@@ -119,7 +121,8 @@ def create_rag(llm, vector_store):
             docs_content = "\n\n".join(doc.page_content for doc in state["context"])
 
             # convert the chat history into readable format by the LLM
-            if state.get("chat_history"):
+            conversation_context = "No previous conversation"
+            if state.get("chat_history") and len(state["chat_history"]) > 0:
                 conversation_context = "\n".join([
                     f"Human: {human} \n Bot: {AI}"
                     for human, AI in state["chat_history"]
@@ -150,7 +153,6 @@ def create_rag(llm, vector_store):
                 }
             ]
 
-            
             response = llm.invoke(messages)
 
             return {"answer": response.content}
@@ -158,6 +160,20 @@ def create_rag(llm, vector_store):
         except Exception as e:
             print(f"Error in generating chat with history: {e}")
             return {"answer": f"Error generating messaging: {e}"}
+    
+    def rag_pipeline(input_data):
+        # retrieve documents
+        state_with_context = retrieve_with_chat_hostory(input_data)
+
+        # update the state of RAG bot with context
+        full_state = {**input_data, **state_with_context}
+
+        # generate
+        response = generate_with_chat_history(full_state)
+
+        return response
+    
+    return rag_pipeline
 
 
 def main():
@@ -167,6 +183,7 @@ def main():
         # load the LLM model
         llm, vector_store = initialize_rag_system()
         rag_bot = create_rag(llm, vector_store)
+
 
         chat_history = []
 
@@ -184,15 +201,15 @@ def main():
                 continue
 
             try:
-                result = rag_bot.invoke({
+                result = rag_bot({
                     "question": user_question,
-                    "conversation_history": chat_history
+                    "chat_history": chat_history
                     })
                 
                 answer = result['answer']
                 print(f"\nAnswer: {answer}")
 
-                chat_history.append(user_question, answer)
+                chat_history.append((user_question, answer))
 
                 # control memory overflow
                 if len(chat_history) > 10:
@@ -203,3 +220,7 @@ def main():
     
     except Exception as e:
         print(f"Error in main: {e}")
+
+# enter main 
+if __name__ == "__main__":
+    main()
